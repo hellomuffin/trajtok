@@ -1,0 +1,161 @@
+# TrajViT-v2 contrastive pretraining config.
+#
+# Identical scaffolding to ../segmenter/configs/pretrain.yaml but:
+#   * vit_type=simpletrajvitv2          → enables SegmentCLIP (segmenter + ViT-L
+#                                          transformer over trajectory tokens
+#                                          + BERT text encoder + InfoNCE)
+#   * train_corpus=panda_4m              → small-scale Panda-70M subset
+#                                          (the published checkpoint's data)
+#   * loss_weight.itc=1.0                → contrastive loss active
+#
+# Required environment variables:
+#   TRAJTOK_DATA_ROOT       — root of dataset annotations + tars (default ./data)
+#   TRAJTOK_OUTPUT_DIR      — checkpoints + logs (default ./results)
+
+data_root:     ${oc.env:TRAJTOK_DATA_ROOT,./data}
+output_root:   ${oc.env:TRAJTOK_OUTPUT_DIR,./results}
+
+anno_root_filtered: ${data_root}/metadata
+anno_root_pt:       ${data_root}/anno_pretrain
+anno_root_downstream: ${data_root}/jsondata
+
+available_corpus:
+  big_image_new: ['${anno_root_filtered}/big_images_new.json', '/', image]
+  big_video_new: ['${anno_root_filtered}/big_videos_new.json', '/', video]
+
+  # Panda-70M subsets (Panda is a public video-caption dataset; pick a size
+  # matching your compute budget).
+  panda_short: ['${anno_root_pt}/panda_train_short.json', '${data_root}/panda70m', video]
+  panda_1m:    ['${anno_root_pt}/panda_1m.json',         '${data_root}/panda70m', video]
+  panda_4m:    ['${anno_root_downstream}/panda_4m.json', '${data_root}/panda70m', video]
+
+  sa1b:     ['${data_root}/sa1b/sa_*.tar', sa1b]
+  sav_train:['${data_root}/sav/videos_fps6/', '${data_root}/sav/sav_instances/', sav]
+
+  # Mixtures
+  panda_only:
+    - ${available_corpus.panda_4m}
+  filteredmixdata_new:
+    - ${available_corpus.big_image_new}
+    - ${available_corpus.big_video_new}
+  filteredmixdata_all:
+    - ${available_corpus.big_image_new}
+    - ${available_corpus.big_video_new}
+    - ${available_corpus.sa1b}
+    - ${available_corpus.sav_train}
+
+train_corpus: panda_only          # the released ckpt was trained on a small Panda subset
+train_file: ${available_corpus[${train_corpus}]}
+
+# In-loop evals are disabled by default — use the standalone scripts in
+# ./scripts/eval_*.py for proper zero-shot retrieval / classification.
+test_corpus: all
+test_file: {}
+test_file_image: {}
+
+text_encoder: bert-base-uncased
+bert_config: ${oc.env:TRAJTOK_SEGMENTER_CONFIG_DIR,../segmenter/configs}/config_bert.json
+vit_type: simpletrajvitv2            # ← THIS is what differentiates trajvitv2 from segmenter
+add_temporal_embed: False
+
+image_res: 224
+mask_down_factor: 1
+embed_dim: 256                       # contrastive embedding dim (vision_proj output)
+
+video_input:
+  num_frames: 8
+  reader: decord
+  sample_type: middle
+  num_frames_test: 8
+  sample_type_test: middle
+  version_ext: _v0
+max_txt_l: { image: 77, video: 77, sa1b: 77, sav: 77 }
+
+traj_model:
+  model_name: vit-large
+  embed_dim: 512
+  segment_embed_dim: 512
+  latent_res: 56
+  output_res: 56
+  loss_func: dice_focal
+  num_traj: 128
+  total_latent_level: 0
+  pretrained: false                  # we don't init the trajectory ViT from HF pretrained (random init)
+  pool: cls
+  pre_select_latents: true
+  attend_other_latents: false
+  rope_3d: false
+  no_high_res: false
+  add_mean_traj: false
+backbone:
+  backbone_model: dinov3_small
+  backbone_pretrained: true
+  backbone_output_hierarchy: false
+  backbone_pool: sum
+  freeze: false
+perceiver:
+  depth: 2
+
+batch_size:      { image: 64, video: 8, sa1b: 64, sav: 8 }
+batch_size_test: { image: 64, video: 8 }
+k_test: 128
+temp: 0.07
+mlm_prob: 0.5
+loss_weight:
+  itc: 1.0                           # ← contrastive loss enabled (vs 0 for segmenter)
+  mlm: 1.0
+  itm: 1.0
+  icl: 1.0                           # segmentation loss stays on (jointly trained)
+itm_hard_neg: True
+
+optimizer:
+  opt: adamW
+  lr: 1e-4
+  opt_betas: [0.9, 0.999]
+  weight_decay: 0.02
+  max_grad_norm: 10
+  different_lr:
+    enable: False
+    module_names: [temporal_vision_encoder, ]
+    lr: 1e-4
+  finetune_lr: 1e-5
+
+scheduler:
+  sched: cosine
+  epochs: 20
+  min_lr_multi: 0.01
+  warmup_epochs: 1
+  finetune_epochs: 0
+
+output_dir: ${output_root}/trajvitv2_default
+resume: False
+partial_resume: False
+pretrained_path: None
+image_pretrained_path: None            # set this to the released segmenter ckpt to warm-start
+load_vision_only: False
+evaluate: False
+eval_frame_ensemble: concat
+eval_x_only: False
+eval_offload: True
+device: cuda
+seed: 42
+log_freq: 30
+eval_freq: 3
+save_freq: 3
+distributed: True
+fp16: True
+debug: False
+num_workers: 8
+num_workers_test: 4
+onlyapp: False
+
+wandb:
+  enable: True
+  entity: None
+  project: trajtok-trajvitv2
+  group: default
+
+use_gt_mask: false
+
+sa1b: { max_objects: 256, shuffle_buffer: 5000, num_samples: 11000000 }
+sav:  { max_objects: 256, num_samples: 48000 }

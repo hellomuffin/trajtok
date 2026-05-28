@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trajtok-trajvlm"
+version = "0.1.0"
+description = "TrajVLM — vision-language model using TrajTok trajectory tokens on top of SigLIP2 + Qwen3-4B"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Chenhao Zheng" }]
+
+# molmo2 itself is not on PyPI; users install it as a sibling source checkout
+# (see README "Install" section). We only declare the dependencies our own
+# vendored modules actually import directly.
+dependencies = [
+  "torch>=2.6",
+  "einops",
+  "Pillow",
+  "PyYAML",
+  "easydict",
+  "huggingface_hub",
+  "transformers>=4.40",
+  "rotary-embedding-torch",
+]
+
+[tool.setuptools.packages.find]
+include = ["trajtok_trajvlm*"]

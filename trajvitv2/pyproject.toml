@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trajtok-trajvitv2"
+version = "0.1.0"
+description = "TrajViT-v2 — CLIP-style contrastive video-text model on top of TrajTok trajectory tokens"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Chenhao Zheng" }]
+
+# Depends on the segmenter package (sibling) for shared model + training code.
+# Install both with `pip install -e ../segmenter -e .` from the repo root.
+dependencies = [
+  "trajtok-segmenter",
+  "huggingface_hub",
+]
+
+[tool.setuptools.packages.find]
+include = ["trajtok_trajvitv2*"]

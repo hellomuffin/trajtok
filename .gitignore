@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.so
+.Python
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Project-specific
+results/
+checkpoints/
+logs/
+wandb/
+*.pth
+*.pt
+*.safetensors
+data/raw/
+data/cache/
+notebooks/scratch_*
+
+# Large vendored DINOv3 weights (download separately)
+**/dinov3_convnext_*.pth
