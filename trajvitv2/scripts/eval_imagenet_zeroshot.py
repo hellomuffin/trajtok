@@ -4,7 +4,7 @@ Uses 80-prompt-ensemble CLIP-style classification (per-class templates averaged)
 
 Usage:
     python scripts/eval_imagenet_zeroshot.py \\
-        --ckpt checkpoints/trajvitv2_panda.pth \\
+        --ckpt checkpoints/trajvitv2_filteredmixdata_new.pth \\
         --imagenet_val /path/to/imagenet/val \\
         [--output_dir results/imagenet_zs]
 

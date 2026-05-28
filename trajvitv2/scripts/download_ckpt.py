@@ -1,8 +1,9 @@
-"""Download the released TrajViT-v2 (Panda-70M small-scale) checkpoint from HuggingFace Hub.
+"""Download the released TrajViT-v2 (small-scale) checkpoint from HuggingFace Hub.
 
-NOTE: this checkpoint is trained on a small Panda-70M subset (~600 K clips) for
-~20 epochs. It is released as a starting point for fine-tuning, NOT as a
-production model. See the README for caveats.
+NOTE: this checkpoint is trained on a small ~1.3 M-pair image+video mixture
+(`big_image_new` + `big_video_new`) for 20 epochs. It is released as a
+starting point for fine-tuning, NOT as a production model. See the README
+for caveats.
 """
 import argparse
 import os

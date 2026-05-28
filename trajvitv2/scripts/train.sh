@@ -7,7 +7,7 @@
 # Usage:
 #   bash scripts/train.sh [--ngpus 8] [--nnodes 1] \
 #                         [--seg_ckpt PATH]   # warm-start segmenter (recommended)
-#                         [--train_corpus panda_only] \
+#                         [--train_corpus filteredmixdata_new] \
 #                         [--exp_name myrun] [--epoch 20] [--lr 1e-4]
 #
 # Required env vars:
@@ -20,7 +20,7 @@ set -e
 ngpus=8
 nnodes=1
 exp_name="default"
-train_corpus="panda_only"
+train_corpus="filteredmixdata_new"
 batch_size_video=8
 batch_size_image=64
 epoch=20

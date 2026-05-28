@@ -5,7 +5,7 @@ ActivityNet-captions val, and DiDeMo val.
 
 Usage:
     python scripts/eval_video_retrieval.py \\
-        --ckpt checkpoints/trajvitv2_panda.pth \\
+        --ckpt checkpoints/trajvitv2_filteredmixdata_new.pth \\
         --dataset msrvtt \\
         --json /path/to/msrvtt_test_1kA.json \\
         --video_root /path/to/msrvtt/videos \\

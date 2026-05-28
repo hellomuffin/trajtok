@@ -1,5 +1,7 @@
 # TrajViT-v2
 
+📄 **Paper:** [arXiv:2602.22779](https://arxiv.org/abs/2602.22779)
+
 **TrajViT-v2** wraps the trajectory segmenter with a vision transformer and a
 CLIP-style image-text contrastive objective. The trajectory tokens (128 per
 clip from the segmenter) are contextualised by a ViT-Large transformer, then
@@ -46,7 +48,7 @@ pip install -e .
 
 ```bash
 python scripts/download_ckpt.py
-# → ./checkpoints/trajvitv2_panda.pth
+# → ./checkpoints/trajvitv2_filteredmixdata_new.pth
 ```
 
 **⚠ Caveat**: this checkpoint is trained on a **small image+video mixture
@@ -59,7 +61,7 @@ Use it as a *starting point* for fine-tuning or as a sanity-check baseline.
 
 ```bash
 python scripts/eval_video_retrieval.py \
-  --ckpt checkpoints/trajvitv2_panda.pth \
+  --ckpt checkpoints/trajvitv2_filteredmixdata_new.pth \
   --dataset msrvtt \
   --json /path/to/MSRVTT/msrvtt_test_1kA.json \
   --video_root /path/to/MSRVTT/videos
@@ -70,7 +72,7 @@ python scripts/eval_video_retrieval.py \
 
 ```bash
 python scripts/eval_imagenet_zeroshot.py \
-  --ckpt checkpoints/trajvitv2_panda.pth \
+  --ckpt checkpoints/trajvitv2_filteredmixdata_new.pth \
   --imagenet_val /path/to/imagenet/val \
   --class_names examples/imagenet_class_names.json
 # → results/imagenet_zs/metrics.json
@@ -110,7 +112,7 @@ TRAJTOK_DINOV3_ROOT=/path/to/dinov3 \
 bash scripts/train.sh \
   --ngpus 8 \
   --seg_ckpt /path/to/segmenter_filteredmixdata_all.pth   # ← warm-start from released segmenter
-  --train_corpus panda_only \
+  --train_corpus filteredmixdata_new \
   --exp_name myrun \
   --epoch 20 --log_wandb
 ```
@@ -119,15 +121,20 @@ Warm-starting from the released segmenter is **highly recommended** — without
 it the model has to learn trajectory grouping from scratch alongside the
 contrastive objective, which is much slower to converge.
 
-## Released-checkpoint numbers (small-scale Panda-70M training)
+## Released-checkpoint quality
 
-| Benchmark | Metric | This ckpt | Reference (CLIP4Clip ViT-B/32, trained on much more data) |
-|---|---|---|---|
-| MSR-VTT (1k-A) | R@1 T→V | ~24.5 | 32.0 |
-| MSR-VTT (1k-A) | R@5 T→V | ~48.0 | 57.0 |
-| ImageNet-1k | top-1 (zero-shot) | ~31.0 | 61.9 (CLIP ViT-L/14, ~400 M pairs) |
+The published checkpoint is trained on ~1.3 M image+video pairs (vs. 100 M –
+5 B for production CLIP/SigLIP), so video-retrieval and zero-shot
+classification numbers will be substantially below state-of-the-art trained
+on web-scale data. Run the eval scripts above against your own data to see
+the exact numbers on your benchmark / split combination. We omit pinned
+numbers here because they depend on annotation file versions
+(MSR-VTT 1k-A vs 1k-B, ActivityNet-Captions test vs val, etc.) and would
+encourage cargo-cult reproduction.
 
-Numbers are illustrative — exact reproduction requires the full data pipeline.
+Use this checkpoint as: (a) a sanity-check baseline for trajectory-CLIP
+architectures, or (b) a starting point for fine-tuning on larger or
+domain-specific data.
 
 ## Repository layout
 
@@ -145,7 +152,7 @@ trajvitv2/
 ├── examples/                       (place to bundle small data: class names, demo clips)
 └── trajtok_trajvitv2/
     ├── eval/                       (extension hooks; mostly empty — eval scripts in scripts/)
-    └── viz/                        (visualisation helpers — TBD)
+    └── viz/                        (extension hooks for custom visualisation pipelines)
 ```
 
 ## Caveats

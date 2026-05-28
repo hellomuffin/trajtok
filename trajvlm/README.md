@@ -1,5 +1,7 @@
 # TrajVLM
 
+📄 **Paper:** [arXiv:2602.22779](https://arxiv.org/abs/2602.22779)
+
 **TrajVLM** is a vision-language model that uses our trajectory segmenter as a
 trajectory-aware connector over SigLIP2 visual features, feeding the pooled
 trajectory tokens into a Qwen3-4B-Instruct LLM.

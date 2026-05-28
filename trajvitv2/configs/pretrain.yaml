@@ -1,12 +1,12 @@
 # TrajViT-v2 contrastive pretraining config.
 #
 # Identical scaffolding to ../segmenter/configs/pretrain.yaml but:
-#   * vit_type=simpletrajvitv2          → enables SegmentCLIP (segmenter + ViT-L
-#                                          transformer over trajectory tokens
-#                                          + BERT text encoder + InfoNCE)
-#   * train_corpus=panda_4m              → small-scale Panda-70M subset
-#                                          (the published checkpoint's data)
-#   * loss_weight.itc=1.0                → contrastive loss active
+#   * vit_type=simpletrajvitv2           → enables SegmentCLIP (segmenter + ViT-L
+#                                           transformer over trajectory tokens
+#                                           + BERT text encoder + InfoNCE)
+#   * train_corpus=filteredmixdata_new    → the published checkpoint's data
+#                                           (~1.3 M image+video pairs)
+#   * loss_weight.itc=1.0                 → contrastive loss active
 #
 # Required environment variables:
 #   TRAJTOK_DATA_ROOT       — root of dataset annotations + tars (default ./data)
@@ -44,7 +44,7 @@ available_corpus:
     - ${available_corpus.sa1b}
     - ${available_corpus.sav_train}
 
-train_corpus: panda_only          # the released ckpt was trained on a small Panda subset
+train_corpus: filteredmixdata_new # the released ckpt was trained on this (~1.3 M image+video pairs)
 train_file: ${available_corpus[${train_corpus}]}
 
 # In-loop evals are disabled by default — use the standalone scripts in

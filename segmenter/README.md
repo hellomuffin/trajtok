@@ -1,5 +1,7 @@
 # TrajTok Segmenter
 
+📄 **Paper:** [arXiv:2602.22779](https://arxiv.org/abs/2602.22779)
+
 The trajectory segmenter from **TrajTok-v2** — a class-agnostic spatio-temporal
 object grouper that maps an image or video clip into ≤ K (default 128)
 *trajectory tokens*. Each trajectory binds together patches that belong to the
@@ -92,37 +94,49 @@ M = logits.softmax(-1)                               # (B, N, K)
 
 ## Qualitative results
 
-Trajectory-token assignments on real images. Each color = one trajectory
-token; pixels with the same color get pooled into the same `z_k`. Both
-images below are 224×224 model inputs producing a 56×56 trajectory map
-(upsampled with nearest-neighbour to the original resolution for display).
+Trajectory-token assignments on three real scenes. Each color = one
+trajectory token; pixels with the same color get pooled into the same
+`z_k`. All images below are 224×224 model inputs producing a 56×56
+trajectory map (upsampled with nearest-neighbour for display).
 
 | Input | Trajectory map | Overlay |
 |---|---|---|
-| ![](../assets/qual/example_truck_input.jpg) | ![](../assets/qual/example_truck_mask.png) | ![](../assets/qual/example_truck_overlay.png) |
-| ![](../assets/qual/example_groceries_input.jpg) | ![](../assets/qual/example_groceries_mask.png) | ![](../assets/qual/example_groceries_overlay.png) |
+| ![](../assets/qual/example_breakdance_input.jpg)     | ![](../assets/qual/example_breakdance_mask.png)     | ![](../assets/qual/example_breakdance_overlay.png)     |
+| ![](../assets/qual/example_dance-twirl_input.jpg)    | ![](../assets/qual/example_dance-twirl_mask.png)    | ![](../assets/qual/example_dance-twirl_overlay.png)    |
+| ![](../assets/qual/example_horsejump-high_input.jpg) | ![](../assets/qual/example_horsejump-high_mask.png) | ![](../assets/qual/example_horsejump-high_overlay.png) |
 
-The released checkpoint typically activates **10–25 distinct trajectories** on
-single images (out of K=128 available), reflecting the number of distinct
-objects / regions visible. On videos this rises as new objects appear across
-frames.
+Each of these crowded scenes activates ~30 distinct trajectories (out of
+K=128 available) — the model adaptively allocates one token per major
+object / region. Cleaner single-subject scenes use fewer (10–15). On
+videos the count rises as new objects appear across frames.
 
 *Reproduce with* `scripts/demo_image.py --image <YOUR_IMG> --ckpt <DOWNLOADED_CKPT>`.
 
-> Source images are from the [SAM 2 repository](https://github.com/facebookresearch/sam2)
-> (Meta AI, Apache-2.0). Re-distributed here as illustrative examples under the
-> same license. See [`../assets/qual/CREDITS.md`](../assets/qual/CREDITS.md).
+> Source images are from the [DAVIS-2017 dataset](https://davischallenge.org)
+> (CC BY 4.0). See [`../assets/qual/CREDITS.md`](../assets/qual/CREDITS.md)
+> for full attribution.
 
 ## Quantitative results
 
-| Benchmark | Metric | Released ckpt |
-|---|---|---|
-| DAVIS-2017 val (480p) | mIoU (Hungarian-matched) | TBD |
-| MOSE val | mIoU (Hungarian-matched) | TBD |
-| SA-1B held-out | mIoU (Hungarian-matched) | TBD |
+Three eval drivers ship in `scripts/`:
 
-Run `scripts/eval_davis.py --ckpt checkpoints/segmenter_filteredmixdata_all.pth
---davis_root /path/to/DAVIS` to reproduce.
+| Benchmark | Driver | Metrics |
+|---|---|---|
+| DAVIS-2017 val (480p) | `scripts/eval_davis.py`  | VEQ, STQ_EN (Hungarian-matched, IoU≥0.5) |
+| MOSE val              | `scripts/eval_mose.py`   | VEQ, STQ_EN |
+| YT-VIS 2019/2021      | `scripts/eval_ytvis.py`  | VEQ, STQ_EN |
+
+Run with:
+
+```bash
+python scripts/eval_davis.py \
+  --ckpt checkpoints/segmenter_filteredmixdata_all.pth \
+  --davis_root /path/to/DAVIS
+```
+
+Each driver writes a `metrics.json` (aggregate scores) + a `per_video.csv`
+(breakdown). Numbers depend on `--num_frames`, `--image_res`, and
+`--iou_thr`; defaults follow the values used in the paper.
 
 ## Training
 
@@ -178,11 +192,26 @@ it forwards).
 
 ## Evaluation
 
-Two paths:
+Three clean drivers in `scripts/`:
 
-1. **Quick clean eval** (recommended): `scripts/eval_davis.py` — TBD
-2. **Research-grade eval driver** (lots of hardcoded paths; needs adaptation):
-   `trajtok_segmenter/eval/eval_segmenter.py`. See header docstring for caveats.
+```bash
+python scripts/eval_davis.py  --ckpt CKPT --davis_root /path/to/DAVIS
+python scripts/eval_mose.py   --ckpt CKPT --mose_root  /path/to/MOSE
+python scripts/eval_ytvis.py  --ckpt CKPT --ytvis_root /path/to/ytvis2019 \
+                              --ann_file /path/to/ytvis2019/instances_valid.json
+```
+
+Each driver:
+- Loads the released checkpoint via `--ckpt`
+- Samples `--num_frames` frames per video (default 8)
+- Runs the segmenter at `--image_res` (default 224)
+- Hungarian-matches predicted trajectory IDs against GT instance IDs at IoU ≥ `--iou_thr` (default 0.5)
+- Writes aggregate metrics to `<output_dir>/metrics.json` + per-video breakdown to `per_video.csv`
+- Optionally saves overlay visualisations for the first `--save_viz N` videos
+
+Reusable helpers (`save_pca_feature_maps`, `merge_tracklets`,
+`downsample_segmentation_probs`) live in
+`trajtok_segmenter/eval/eval_segmenter.py` for custom pipelines.
 
 ## Repository layout
 
@@ -198,7 +227,9 @@ segmenter/
 │   ├── train.sh                   (single-node launch)
 │   ├── download_ckpt.py           (HF Hub fetch)
 │   ├── demo_image.py              (run on one image, save mask + overlay)
-│   └── eval_davis.py              (TBD: clean DAVIS eval)
+│   ├── eval_davis.py              (DAVIS-2017 val: Hungarian-matched VEQ + STQ_EN)
+│   ├── eval_mose.py               (MOSE val: same metrics, MOSE layout)
+│   └── eval_ytvis.py              (YT-VIS 2019/2021: COCO-RLE annotations)
 └── trajtok_segmenter/
     ├── model/                     (SimpleSegmenter + PerceiverResampler + DINOv3 + ...)
     ├── data/                      (datasets + loaders for the corpora above)
