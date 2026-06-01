@@ -31,13 +31,14 @@ python scripts/download_ckpt.py  # → ./checkpoints/segmenter_filteredmixdata_a
 ### 3. Run on one image
 
 ```bash
+# Try any of the DAVIS-2017 examples already bundled in this repo:
 python scripts/demo_image.py \
-  --image examples/cat.jpg \
+  --image ../assets/qual/example_dance-twirl_input.jpg \
   --ckpt checkpoints/segmenter_filteredmixdata_all.pth \
   --output_dir demo_out
-# → demo_out/cat__mask.png       (color-coded trajectory map)
-# → demo_out/cat__overlay.png    (alpha-blended over original)
-# → demo_out/cat__assignment.npy (per-pixel trajectory IDs, 0..127)
+# → demo_out/example_dance-twirl_input__mask.png       (color-coded trajectory map)
+# → demo_out/example_dance-twirl_input__overlay.png    (alpha-blended over original)
+# → demo_out/example_dance-twirl_input__assignment.npy (per-pixel trajectory IDs, 0..127)
 ```
 
 ### 4. Use as a library

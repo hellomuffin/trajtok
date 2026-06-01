@@ -30,13 +30,16 @@ import argparse
 import csv
 import json
 import os
+import sys
 from collections import defaultdict
 
 import numpy as np
 import torch
 from PIL import Image
 
-from scripts.eval_davis import (
+# Make sibling scripts importable when this file is run directly via `python scripts/eval_ytvis.py`.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from eval_davis import (
     build_model, segmenter_predict, save_clip_viz, _IMAGENET_MEAN, _IMAGENET_STD,
 )
 from trajtok_segmenter.eval.seg_metric import veq_scores, stq_en

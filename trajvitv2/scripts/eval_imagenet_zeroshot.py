@@ -10,7 +10,9 @@ Usage:
 
 We expect `imagenet_val` to be the standard ImageFolder layout:
     {imagenet_val}/<wnid>/<image>.JPEG
-A bundled `imagenet_class_names.json` maps wnid → class name(s).
+Pass `--class_names` pointing at a JSON `{wnid: 'class name'}` mapping (or
+`{wnid: [aliases...]}`). Grab one from the OpenAI CLIP repo, torchvision, or
+any source that ships ImageNet-1k metadata.
 """
 from __future__ import annotations
 

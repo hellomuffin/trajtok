@@ -55,11 +55,16 @@ python scripts/eval_video_retrieval.py \
 
 ### 4. Zero-shot ImageNet classification
 
+`--class_names` expects a JSON `{wnid: "class name"}` mapping (one entry per
+ImageFolder subdir). You can grab a standard one from the
+[OpenAI CLIP repo](https://github.com/openai/CLIP/blob/main/notebooks/Prompt_Engineering_for_ImageNet.ipynb)
+or any source that ships ImageNet metadata (torchvision, HF `imagenet-1k`).
+
 ```bash
 python scripts/eval_imagenet_zeroshot.py \
   --ckpt checkpoints/trajvitv2_filteredmixdata_new.pth \
   --imagenet_val /path/to/imagenet/val \
-  --class_names examples/imagenet_class_names.json
+  --class_names /path/to/imagenet_class_names.json
 # → results/imagenet_zs/metrics.json
 ```
 
