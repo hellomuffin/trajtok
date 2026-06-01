@@ -7,28 +7,6 @@ object grouper that maps an image or video clip into ≤ K (default 128)
 *trajectory tokens*. Each trajectory binds together patches that belong to the
 same object instance over space and time.
 
-Architecture in one diagram:
-
-```
-video / image  (T, 3, 224, 224)
-        │
-        ↓
-  DINOv3-small ConvNeXt  →  patch features F  (T·56·56, D=512)
-        │
-        ↓
-  PerceiverResampler (K=128 learnable trajectory queries, depth=2)
-        │
-        ↓
-  soft-mask assignment:  M[k, p] = softmax_k(q_k · F_p)    (paper Eq. 1)
-        │
-        ↓
-  trajectory tokens:     z_k = Σ_p M[k, p] · F_p           (paper Eq. 2)
-```
-
-Released checkpoint is trained on **filteredmixdata_all** (~11 M SA-1B images
-+ ~48 K SA-V videos + ~300 K big_image_new + ~1 M big_video_new, totaling ~12 M
-samples) for 3 epochs on 2 nodes × 8 H100s.
-
 ## Quickstart
 
 ### 1. Install
@@ -142,23 +120,104 @@ Each driver writes a `metrics.json` (aggregate scores) + a `per_video.csv`
 
 ### Data preparation
 
-The released checkpoint was trained on:
+Training data is **not bundled** with this release. To train on your own
+images / videos, produce a JSON manifest plus sidecar mask (and, for video,
+graph) files in the layout below.
 
-| Source | Annotation file | Notes |
-|---|---|---|
-| **big_image_new** | `${TRAJTOK_DATA_ROOT}/metadata/big_images_new.json` | ~300 K filtered image-caption pairs with auto-generated trajectory masks. Caption + per-image instance masks per JSON record. |
-| **big_video_new** | `${TRAJTOK_DATA_ROOT}/metadata/big_videos_new.json` | ~1 M filtered video-caption pairs with auto-generated per-frame trajectory masks. |
-| **SA-1B** | `${TRAJTOK_DATA_ROOT}/sa1b/sa_*.tar` | Original SA-1B as sharded webdataset; load via `data.sa1b_dataset.SA1BDataset`. |
-| **SA-V** | `${TRAJTOK_DATA_ROOT}/sav/videos_fps6/`, `${TRAJTOK_DATA_ROOT}/sav/sav_instances/` | Frames + per-frame instance polygons. |
+#### Expected layout
 
-JSON schema for `big_*` (per record):
-- `image` *(or)* `video`: absolute path to media
-- `caption`: text description (used only if you flip to the contrastive `simpletrajvitv2` mode; ignored for segmentation-only training)
-- `mask`: per-frame run-length-encoded instance masks
-- `graph`: trajectory linking IDs across frames
+```
+${TRAJTOK_DATA_ROOT}/
+├── metadata/
+│   ├── my_images.json            ← image manifest
+│   └── my_videos.json            ← video manifest
+├── images/
+│   ├── img_001.jpg
+│   ├── img_001_mask.npz          ← sidecar mask
+│   ├── img_002.jpg
+│   └── img_002_mask.npz
+└── videos/
+    ├── clip_001.mp4
+    ├── clip_001_mask.npz         ← sidecar per-frame masks
+    ├── clip_001_graph.npz        ← sidecar trajectory graph
+    ├── clip_002.mp4
+    ├── clip_002_mask.npz
+    └── clip_002_graph.npz
+```
 
-See `data/caption_dataset.py:ImgGraphTrainDataset` / `VidGraphTrainDataset` for
-the full loader spec.
+#### `my_images.json` — image manifest
+
+A flat list of records. Each record:
+
+```json
+[
+  {"image": "/abs/or/rel/path/to/images/img_001.jpg", "caption": "a dog runs through tall grass"},
+  {"image": "/abs/or/rel/path/to/images/img_002.jpg", "caption": "two children play with a kite"}
+]
+```
+
+- `image`: path to the source image. If relative, it's joined with the
+  `image_root_prefix` field of the corpus entry in
+  [`configs/pretrain.yaml`](configs/pretrain.yaml) (defaults to `/`).
+- `caption`: text description. Ignored for segmentation-only training
+  (`vit_type=simplesegmenter`); used only when you flip to the contrastive
+  `simpletrajvitv2` mode (see [`../trajvitv2/`](../trajvitv2/)).
+
+For every `images/img_X.jpg` you must also produce a sidecar file
+`images/img_X_mask.npz` with key `arr_0` of shape `(H, W)` and dtype
+`uint8`/`uint16`. Pixel values are instance IDs (`0` = background, `1..N` =
+distinct objects). Loader: [`trajtok_segmenter/data/caption_dataset.py:ImgGraphTrainDataset`](trajtok_segmenter/data/caption_dataset.py).
+
+#### `my_videos.json` — video manifest
+
+```json
+[
+  {"video": "/abs/or/rel/path/to/videos/clip_001.mp4", "caption": "a chef chops onions on a wooden board"},
+  {"video": "/abs/or/rel/path/to/videos/clip_002.mp4", "caption": "skier descending a snowy slope"}
+]
+```
+
+Optional explicit `"mask"` / `"graph"` keys override the default sidecar paths
+(`<base>_mask.npz`, `<base>_graph.npz`).
+
+For every `videos/clip_X.mp4`:
+- `clip_X_mask.npz` — key `arr_0`, shape `(T, H, W)`, per-frame instance IDs.
+- `clip_X_graph.npz` — key `tensor`, shape `(N_instances, T)`, linking
+  per-frame mask IDs across frames (row `n` = instance n's per-frame mask IDs;
+  `0` = absent in that frame).
+
+Loader: [`trajtok_segmenter/data/base_dataset.py:get_mask_and_graph`](trajtok_segmenter/data/base_dataset.py).
+
+The trajectory graph is what teaches the model *temporal* binding: instance n
+in frame t links to instance n in frame t+1, so two patches with the same
+trajectory ID across frames must pool into the same `z_k`.
+
+#### Register your corpus + train
+
+Edit [`configs/pretrain.yaml`](configs/pretrain.yaml) — add your entries to
+`available_corpus`:
+
+```yaml
+available_corpus:
+  my_images: ['${anno_root_filtered}/my_images.json', '/', image]
+  my_videos: ['${anno_root_filtered}/my_videos.json', '/', video]
+
+  # And a mixture (optional — you can also point train_corpus directly at a single source):
+  my_mix:
+    - ${available_corpus.my_images}
+    - ${available_corpus.my_videos}
+```
+
+Then launch with `--train_corpus my_mix` (see "Launch" below).
+
+#### Optional: SA-1B / SA-V
+
+The released checkpoint also mixed in SA-1B (sharded webdataset of panoptic
+images) and SA-V (videos + per-frame instance polygons). Loaders are in
+[`trajtok_segmenter/data/sa1b_dataset.py`](trajtok_segmenter/data/sa1b_dataset.py)
+and [`trajtok_segmenter/data/sav_dataset.py`](trajtok_segmenter/data/sav_dataset.py).
+Wire them in via the `sa1b` / `sav` corpus types in `available_corpus` if you
+have those datasets locally.
 
 ### Launch
 
@@ -170,11 +229,13 @@ TRAJTOK_OUTPUT_DIR=/path/to/results \
 TRAJTOK_DINOV3_ROOT=/path/to/dinov3 \
 bash scripts/train.sh \
   --ngpus 8 \
-  --train_corpus filteredmixdata_all \
+  --train_corpus my_mix \
   --exp_name myrun \
   --epoch 20 \
   --log_wandb
 ```
+
+`--train_corpus` must match a key in `configs/pretrain.yaml:available_corpus`.
 
 Multi-node (via your scheduler — set `MASTER_ADDR` + `MASTER_PORT` + `NODE_RANK`
 and call `torchrun --nnodes N` directly; see `scripts/train.sh` for the args
@@ -237,20 +298,6 @@ segmenter/
     ├── eval/                      (eval_segmenter.py + seg_metric.py)
     └── text/                      (BERT tokenizer + xbert; used by simpletrajvitv2 contrastive mode)
 ```
-
-## Known limitations of this release
-
-- **Frame count cap**: the released checkpoint was trained at T ≤ 8 frames per
-  clip. Longer-clip behaviour at inference is untested.
-- **Resolution**: trained at 224×224 inputs producing a 56×56 trajectory grid.
-  Other resolutions work but lose quality away from this point.
-- **Caption / contrastive head** (`simpletrajvitv2` mode): the code is bundled
-  for reproducibility but **uses a BERT text encoder and ImageNet-style
-  contrastive loss** that you may want to swap for a more modern alternative.
-- **`eval/eval_segmenter.py`** is a research artifact with weka-specific
-  paths; use it as a reference, not a turnkey tool. The clean
-  `scripts/eval_davis.py` is the supported entry point (coming in a follow-up).
-- **DINOv3 weights are not bundled** — download separately (Apache-2.0).
 
 ## Citation
 

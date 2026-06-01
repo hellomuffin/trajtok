@@ -7,21 +7,6 @@ CLIP-style image-text contrastive objective. The trajectory tokens (128 per
 clip from the segmenter) are contextualised by a ViT-Large transformer, then
 the [CLS] feature is contrasted against BERT text embeddings via InfoNCE.
 
-```
-video / image
-     │
-     ↓
-SimpleSegmenter (DINOv3 + perceiver)         →  trajectory tokens  z  (K=128, D=512)
-     │
-     ↓
-ViT-Large transformer over z                  →  contextualised z' (K+1=129, D=512)
-     │
-     ↓
-[CLS]-pool → vision_proj (linear) ────────────→ image embedding for InfoNCE
-                                                  ↕
-                                            text embedding ← BERT(caption)
-```
-
 This package **reuses the segmenter package's code** ([`../segmenter`](../segmenter))
 — the same training loop (`trajtok_segmenter.train.pretrain`) supports both
 modes; we just flip `vit_type=simpletrajvitv2` and enable `loss_weight.itc=1.0`.
@@ -82,26 +67,60 @@ python scripts/eval_imagenet_zeroshot.py \
 
 ### Data
 
-The released checkpoint was trained on **`filteredmixdata_new`** — a small
-~1.3 M-pair filtered image+video mixture:
+Training data is **not bundled** with this release. The contrastive head
+needs `{image|video, caption}` pairs; trajectory masks/graphs are also required
+since the segmenter is co-trained.
 
-| Source | Samples | Type |
-|---|---|---|
-| `big_image_new` | ~300 K | filtered image-caption pairs |
-| `big_video_new` | ~1 M | filtered video-caption pairs |
+#### Expected layout
 
-These are user-curated mixtures internal to the paper authors; the
-configuration also supports public alternatives (`panda_4m`, `coco`, `cc3m`,
-etc.) — see the `available_corpus` block in
-[`configs/pretrain.yaml`](configs/pretrain.yaml) for the full list. Provide a
-JSON manifest of the form:
+```
+${TRAJTOK_DATA_ROOT}/
+├── metadata/
+│   ├── my_images.json
+│   └── my_videos.json
+├── images/
+│   ├── img_001.jpg
+│   └── img_001_mask.npz          ← sidecar mask, key="arr_0", shape (H,W)
+└── videos/
+    ├── clip_001.mp4
+    ├── clip_001_mask.npz         ← per-frame masks, key="arr_0", shape (T,H,W)
+    └── clip_001_graph.npz        ← trajectory graph, key="tensor", shape (N_instances,T)
+```
+
+#### Manifest schema
 
 ```json
+// my_images.json
 [
-  {"video": "path/to/clip.mp4", "caption": "a dog runs through tall grass"},
+  {"image": "/abs/or/rel/path/to/images/img_001.jpg", "caption": "a dog runs through tall grass"},
+  ...
+]
+
+// my_videos.json
+[
+  {"video": "/abs/or/rel/path/to/videos/clip_001.mp4", "caption": "a chef chops onions on a wooden board"},
   ...
 ]
 ```
+
+The full schema (sidecar mask/graph conventions, how `image_root_prefix` is
+joined with paths, optional explicit `"mask"`/`"graph"` keys) is documented in
+[`../segmenter/README.md#data-preparation`](../segmenter/README.md#data-preparation).
+
+#### Register your corpus
+
+Edit [`configs/pretrain.yaml`](configs/pretrain.yaml) → add to `available_corpus`:
+
+```yaml
+available_corpus:
+  my_images: ['${anno_root_filtered}/my_images.json', '/', image]
+  my_videos: ['${anno_root_filtered}/my_videos.json', '/', video]
+  my_mix:
+    - ${available_corpus.my_images}
+    - ${available_corpus.my_videos}
+```
+
+Then launch with `--train_corpus my_mix` (see "Launch" below).
 
 ### Launch
 
@@ -112,7 +131,7 @@ TRAJTOK_DINOV3_ROOT=/path/to/dinov3 \
 bash scripts/train.sh \
   --ngpus 8 \
   --seg_ckpt /path/to/segmenter_filteredmixdata_all.pth   # ← warm-start from released segmenter
-  --train_corpus filteredmixdata_new \
+  --train_corpus my_mix \
   --exp_name myrun \
   --epoch 20 --log_wandb
 ```
@@ -120,21 +139,6 @@ bash scripts/train.sh \
 Warm-starting from the released segmenter is **highly recommended** — without
 it the model has to learn trajectory grouping from scratch alongside the
 contrastive objective, which is much slower to converge.
-
-## Released-checkpoint quality
-
-The published checkpoint is trained on ~1.3 M image+video pairs (vs. 100 M –
-5 B for production CLIP/SigLIP), so video-retrieval and zero-shot
-classification numbers will be substantially below state-of-the-art trained
-on web-scale data. Run the eval scripts above against your own data to see
-the exact numbers on your benchmark / split combination. We omit pinned
-numbers here because they depend on annotation file versions
-(MSR-VTT 1k-A vs 1k-B, ActivityNet-Captions test vs val, etc.) and would
-encourage cargo-cult reproduction.
-
-Use this checkpoint as: (a) a sanity-check baseline for trajectory-CLIP
-architectures, or (b) a starting point for fine-tuning on larger or
-domain-specific data.
 
 ## Repository layout
 
@@ -154,17 +158,6 @@ trajvitv2/
     ├── eval/                       (extension hooks; mostly empty — eval scripts in scripts/)
     └── viz/                        (extension hooks for custom visualisation pipelines)
 ```
-
-## Caveats
-
-- **Small-scale ckpt** — see Step 2 above.
-- **Reuses segmenter package**: training imports `trajtok_segmenter.train.pretrain`
-  with `vit_type=simpletrajvitv2`. If you customise heavily, fork that
-  package rather than monkey-patching.
-- **In-loop video retrieval evals** that the segmenter package's
-  `retrieval_utils` once supported are disabled in the OSS config because
-  they depend on additional benchmark data layouts. Use the standalone
-  `scripts/eval_*.py` instead.
 
 ## Citation
 
