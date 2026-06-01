@@ -61,7 +61,7 @@ from olmo.nn.vision_backbone import MolmoVisionBackboneConfig
 # ---------------------------------------------------------------------------
 # Import SimpleSegmenter + TrajPerceiver from the segmenter sibling package
 # (trajtok-segmenter, installed via `pip install -e ./segmenter` from the
-# trajtokv2 repo root).
+# trajtok repo root).
 #
 # CRITICAL: the segmenter package's DINOResNetHierFeat may eagerly load
 # pretrained weights to CUDA in __init__, which crashes when Molmo2

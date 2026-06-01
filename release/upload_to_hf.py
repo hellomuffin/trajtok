@@ -1,4 +1,4 @@
-"""One-button HuggingFace Hub uploader for the TrajTok-v2 released checkpoints.
+"""One-button HuggingFace Hub uploader for the TrajTok released checkpoints.
 
 This script:
   1. Creates two public HF repos under your account (skips if they already exist)
@@ -32,8 +32,8 @@ import sys
 
 
 # Default repo names — change with --segmenter_repo / --trajvitv2_repo if desired
-DEFAULT_SEGMENTER_REPO  = "trajtokv2-segmenter"
-DEFAULT_TRAJVITV2_REPO  = "trajtokv2-trajvitv2"
+DEFAULT_SEGMENTER_REPO  = "trajtok-segmenter"
+DEFAULT_TRAJVITV2_REPO  = "trajtok-trajvitv2"
 
 # Names the model files will land under inside each repo
 HF_CKPT_FILENAME = "model.pth"

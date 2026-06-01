@@ -9,7 +9,7 @@ import argparse
 import os
 import sys
 
-HF_REPO = "michaelzch001/trajtokv2-trajvitv2"
+HF_REPO = "michaelzch001/trajtok-trajvitv2"
 HF_FILENAME = "model.pth"
 
 

@@ -1,4 +1,4 @@
-"""Download the released TrajTok-v2 segmenter checkpoint from HuggingFace Hub.
+"""Download the released TrajTok segmenter checkpoint from HuggingFace Hub.
 
 Usage:
     python scripts/download_ckpt.py [--output PATH]
@@ -10,7 +10,7 @@ import os
 import sys
 
 
-HF_REPO = "michaelzch001/trajtokv2-segmenter"
+HF_REPO = "michaelzch001/trajtok-segmenter"
 HF_FILENAME = "model.pth"
 
 

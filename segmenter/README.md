@@ -2,7 +2,7 @@
 
 📄 **Paper:** [arXiv:2602.22779](https://arxiv.org/abs/2602.22779)
 
-The trajectory segmenter from **TrajTok-v2** — a class-agnostic spatio-temporal
+The trajectory segmenter from **TrajTok** — a class-agnostic spatio-temporal
 object grouper that maps an image or video clip into ≤ K (default 128)
 *trajectory tokens*. Each trajectory binds together patches that belong to the
 same object instance over space and time.
@@ -304,8 +304,8 @@ segmenter/
 If you use this code or checkpoint, please cite the paper:
 
 ```bibtex
-@article{zheng2026trajtokv2,
-  title   = {TrajTok-v2: Trajectory-aware visual tokenization for vision-language models},
+@article{zheng2026trajtok,
+  title   = {TrajTok: Trajectory-aware visual tokenization for vision-language models},
   author  = {Zheng, Chenhao and others},
   journal = {arXiv preprint arXiv:2602.22779},
   year    = {2026},

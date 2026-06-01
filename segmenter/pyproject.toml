@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "trajtok-segmenter"
 version = "0.1.0"
-description = "Trajectory segmenter from TrajTok-v2 — DINOv3 + perceiver + soft-mask object grouping"
+description = "Trajectory segmenter from TrajTok — DINOv3 + perceiver + soft-mask object grouping"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }

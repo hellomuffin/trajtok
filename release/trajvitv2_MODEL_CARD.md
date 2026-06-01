@@ -15,7 +15,7 @@ pipeline_tag: zero-shot-image-classification
 
 # TrajViT-v2 (small-scale image+video pretrain)
 
-**TrajViT-v2** wraps the [TrajTok-v2 segmenter](https://huggingface.co/michaelzch001/trajtokv2-segmenter)
+**TrajViT-v2** wraps the [TrajTok segmenter](https://huggingface.co/michaelzch001/trajtok-segmenter)
 with a ViT-Large transformer and trains it under a CLIP-style image-text
 contrastive objective. Trajectory tokens (K=128 per clip from the segmenter)
 are contextualised by a ViT-Large, then the `[CLS]` feature is contrasted
@@ -34,7 +34,7 @@ video / image  (T, 3, 224, 224)
      ↓
 SimpleSegmenter (DINOv3 + perceiver)         →  trajectory tokens  z  (K=128, D=512)
      │                                                              ↑ warm-started from
-     │                                                              TrajTok-v2 segmenter
+     │                                                              TrajTok segmenter
      ↓
 ViT-Large transformer over z                  →  contextualised z' (K+1=129, D=512)
      │
@@ -63,7 +63,7 @@ from easydict import EasyDict as edict
 from trajtok_segmenter.model.model_pretrain import SegmentCLIP
 from trajtok_segmenter.text.tokenization_bert import BertTokenizer
 
-cfg = edict(yaml.safe_load(open("trajtokv2/trajvitv2/configs/pretrain.yaml")))
+cfg = edict(yaml.safe_load(open("trajtok/trajvitv2/configs/pretrain.yaml")))
 tokenizer = BertTokenizer.from_pretrained(cfg.text_encoder)
 model = SegmentCLIP(config=cfg, tokenizer=tokenizer).cuda().eval()
 
@@ -84,7 +84,7 @@ text_feat = torch.nn.functional.normalize(text_feat, dim=-1)
 ```
 
 Full retrieval / zero-shot scripts: see
-[trajvitv2/scripts/](https://github.com/hellomuffin/trajtokv2/tree/main/trajvitv2/scripts).
+[trajvitv2/scripts/](https://github.com/hellomuffin/trajtok/tree/main/trajvitv2/scripts).
 
 ## Training data
 
@@ -117,7 +117,7 @@ correspondingly lower.
 | Epochs | 20 |
 | Per-modality batch size | image=64, video=8 |
 | Hardware | 1 node × 8 × H100 (80 GB) |
-| Segmenter warm-start | from TrajTok-v2 released segmenter ckpt |
+| Segmenter warm-start | from TrajTok released segmenter ckpt |
 
 ## Limitations
 
@@ -135,8 +135,8 @@ correspondingly lower.
 ## Citation
 
 ```bibtex
-@article{zheng2026trajtokv2,
-  title   = {TrajTok-v2: Trajectory-aware visual tokenization for vision-language models},
+@article{zheng2026trajtok,
+  title   = {TrajTok: Trajectory-aware visual tokenization for vision-language models},
   author  = {Zheng, Chenhao and others},
   journal = {arXiv preprint arXiv:2602.22779},
   year    = {2026},

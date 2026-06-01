@@ -1,13 +1,13 @@
-# TrajTok-v2
+# TrajTok
 
-Official open-source release for **"TrajTok-v2: Trajectory-aware visual tokenization for VLMs"** (Zheng et al., 2026).
+Official open-source release for **"TrajTok: Trajectory-aware visual tokenization for VLMs"** (Zheng et al., 2026).
 
 📄 **Paper:** [arXiv:2602.22779](https://arxiv.org/abs/2602.22779)
 🤗 **Released checkpoints:**
-- Segmenter — [michaelzch001/trajtokv2-segmenter](https://huggingface.co/michaelzch001/trajtokv2-segmenter)
-- TrajViT-v2 — [michaelzch001/trajtokv2-trajvitv2](https://huggingface.co/michaelzch001/trajtokv2-trajvitv2)
+- Segmenter — [michaelzch001/trajtok-segmenter](https://huggingface.co/michaelzch001/trajtok-segmenter)
+- TrajViT-v2 — [michaelzch001/trajtok-trajvitv2](https://huggingface.co/michaelzch001/trajtok-trajvitv2)
 
-TrajTok-v2 produces a small number of *trajectory tokens* per image / video clip
+TrajTok produces a small number of *trajectory tokens* per image / video clip
 that bundle pixels which belong to the same object instance over space and time.
 These tokens are then consumed by a vision transformer (TrajViT-v2) or a VLM
 (TrajVLM) at a fraction of the LLM-token cost of traditional patch tokenisation,
@@ -31,8 +31,8 @@ with the one matching what you want to do:
 ## Citation
 
 ```bibtex
-@article{zheng2026trajtokv2,
-  title   = {TrajTok-v2: Trajectory-aware visual tokenization for vision-language models},
+@article{zheng2026trajtok,
+  title   = {TrajTok: Trajectory-aware visual tokenization for vision-language models},
   author  = {Zheng, Chenhao and others},
   journal = {arXiv preprint arXiv:2602.22779},
   year    = {2026},

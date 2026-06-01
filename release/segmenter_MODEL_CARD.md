@@ -14,9 +14,9 @@ datasets:
 pipeline_tag: image-segmentation
 ---
 
-# TrajTok-v2 Segmenter
+# TrajTok Segmenter
 
-The trajectory segmenter from **TrajTok-v2** — a class-agnostic spatio-temporal
+The trajectory segmenter from **TrajTok** — a class-agnostic spatio-temporal
 object grouper that maps an image or video clip into ≤ K (default 128)
 **trajectory tokens**. Each token binds patches that belong to the same
 object instance over space and time.
@@ -69,7 +69,7 @@ sd = state["model"]
 sd = {k[len("vision_encoder."):] if k.startswith("vision_encoder.") else k: v for k, v in sd.items()}
 
 # Build matching architecture
-cfg = yaml.safe_load(open("trajtokv2/segmenter/configs/pretrain.yaml"))
+cfg = yaml.safe_load(open("trajtok/segmenter/configs/pretrain.yaml"))
 model = SimpleSegmenter(
     config=edict(cfg["traj_model"]),
     backbone_config=edict(cfg["backbone"]),
@@ -86,7 +86,7 @@ traj_id = logits.argmax(-1)                            # per-patch trajectory ID
 soft_mask = logits.softmax(-1)                         # per-patch trajectory weight
 ```
 
-See the [main repository](https://github.com/hellomuffin/trajtokv2) for the
+See the [main repository](https://github.com/hellomuffin/trajtok) for the
 full demo (`segmenter/scripts/demo_image.py`), evaluation drivers
 (DAVIS / MOSE / YT-VIS), and training code.
 
@@ -139,8 +139,8 @@ and fine-tuned end-to-end.
 ## Citation
 
 ```bibtex
-@article{zheng2026trajtokv2,
-  title   = {TrajTok-v2: Trajectory-aware visual tokenization for vision-language models},
+@article{zheng2026trajtok,
+  title   = {TrajTok: Trajectory-aware visual tokenization for vision-language models},
   author  = {Zheng, Chenhao and others},
   journal = {arXiv preprint arXiv:2602.22779},
   year    = {2026},
