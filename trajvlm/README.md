@@ -156,11 +156,7 @@ A few non-obvious things this code handles — useful if you fork:
    global-max-shape padding produces more visual features than the text has
    slots for, which crashes at `molmo2.py:713` with a tensor-size mismatch.
 
-## Released checkpoint
-
-**Not released in this version.** Pretrain (~125 GPU-hr) + SFT (~300 GPU-day)
-is multi-day compute; we release the training + eval code so you can train
-your own. Check back in a future update.
+Under review. We will release checkpoints soon.
 
 ## Acknowledgements
 
