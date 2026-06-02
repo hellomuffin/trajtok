@@ -10,16 +10,7 @@
 # Usage (1 node × 8 GPUs):
 #   bash scripts/pretrain.sh --save_folder /path/to/save --seg_ckpt /path/to/segmenter.pth
 #
-# Multi-node: set MASTER_ADDR + MASTER_PORT + NODE_RANK manually and adjust
-#             --nnodes accordingly (see torchrun docs).
-#
-# Required external dependencies (see README):
-#   * molmo2 source (pip install -e <molmo2_clone>)
-#   * SigLIP2-so400m-14-384.pt   (loaded via MOLMO_DATA_DIR/pretrained_image_encoders/)
-#   * Qwen3-4B-Instruct          (loaded via MOLMO_DATA_DIR/pretrained_llms/)
-#   * Released TrajTok segmenter (downloaded via ../segmenter/scripts/download_ckpt.py)
-#
-# Required env vars:
+# Required env vars (also documented in the README):
 #   MOLMO_DATA_DIR             — where SigLIP2 + Qwen3 weights + PixMoCap data live
 #   WANDB_PROJECT / WANDB_ENTITY — optional, for wandb logging
 
@@ -28,7 +19,7 @@ set -e
 ngpus=8
 nnodes=1
 save_folder="./results/trajvlm_pretrain"
-seg_ckpt="None"                                # set to released segmenter ckpt path
+seg_ckpt="None"
 global_batch_size=128
 device_microbatch=4
 
@@ -47,19 +38,17 @@ done
 
 mkdir -p "${save_folder}"
 
-# Numerical / NCCL knobs (mirror Molmo2 defaults)
 export PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-"expandable_segments:True"}
 export NCCL_ASYNC_ERROR_HANDLING=${NCCL_ASYNC_ERROR_HANDLING:-1}
 export NCCL_BLOCKING_WAIT=${NCCL_BLOCKING_WAIT:-1}
 
-# Note: the trajvlm_pretrain.py launch script we vendor under
-# trajtok_trajvlm/launch_scripts/ keeps its `from olmo.X` imports — molmo2
-# must be importable. The simplest pattern is to keep this launcher running
-# from the molmo2 repo root (so its olmo/ is on PYTHONPATH alongside ours).
-HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# Resolve repo root (this script's parent's parent) so PYTHONPATH lets
+# `from olmo... import ...` work whether you run from anywhere.
+HERE="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+export PYTHONPATH="${HERE}:${PYTHONPATH}"
 
 torchrun --nnodes=${nnodes} --nproc-per-node=${ngpus} \
-  -m trajtok_trajvlm.launch_scripts.trajvlm_pretrain \
+  ${HERE}/launch_scripts/trajvlm_pretrain.py \
   --save_folder=${save_folder} \
   --save_overwrite \
   --pretrained_segmenter_path=${seg_ckpt} \
